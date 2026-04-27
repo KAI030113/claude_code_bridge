@@ -74,6 +74,18 @@ def test_pm_dev_profile_embeds_remote_server_safety_rules():
     assert "delete local temp copies immediately after successful upload" in combined
 
 
+def test_pm_dev_profile_embeds_verification_and_commit_hygiene_rules():
+    combined = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (PROFILE_DIR / "AGENTS.md", PROFILE_DIR / "CLAUDE.md")
+    )
+    assert "Verify against actual files" in combined
+    assert "`git log` / `git show`" in combined
+    assert "do it only after final verification" in combined
+    assert "Co-Authored-By" in combined
+    assert "AI attribution" in combined
+
+
 def test_applier_dry_run_writes_nothing(tmp_path):
     target = tmp_path / "target"
     proc = _run_applier(["--name", "pm-dev", "--dry-run", "--target", str(target)], cwd=tmp_path)

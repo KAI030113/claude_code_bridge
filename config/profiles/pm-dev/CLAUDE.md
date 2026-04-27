@@ -34,6 +34,9 @@ Before concluding a task, the planner must:
 - if a target file is untracked, read its full content directly and confirm it matches the approved plan,
 - run the smallest relevant test or command,
 - state whether the executor output matches the approved plan.
+- verify against actual files, config, logs, command output, and git state instead of relying on assumptions or memory.
+- when asked about prior experiments or historical behavior, inspect the relevant git history with `git log` / `git show` before drawing conclusions.
+- if the brief requires a commit or push, do it only after final verification, use a concise commit message, and do not include `Co-Authored-By` or AI attribution.
 
 ## Remote server targets
 

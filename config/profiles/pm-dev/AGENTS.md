@@ -44,6 +44,8 @@ When `CCB_CALLER_ACTOR=executor`:
 
 - If the task is ambiguous or under-specified, ask for clarification instead of guessing.
 - Prefer concrete file-based reasoning over abstract discussion.
+- Verify against actual files, config, logs, command output, and git state instead of relying on assumptions or memory.
+- When asked about prior experiments or historical behavior, inspect the relevant git history with `git log` / `git show` before drawing conclusions.
 - Keep responses short and operational.
 
 ## Remote server targets
@@ -56,3 +58,4 @@ When the brief names a server target, a `/mnt/...` path, or says the work is on 
 - For complex remote edits, first check server-side `git status --short`, then copy only needed files to a local temp directory with `scp` or `rsync -e ssh`, edit locally, upload back, and delete local temp copies immediately after successful upload.
 - Preserve existing server-side user changes. If unrelated changes are present, work around them instead of overwriting them.
 - The executor does not commit or push unless the approved plan explicitly requires it. The planner owns final verification and commit/push policy.
+- Commit messages must be concise and must not include `Co-Authored-By` or AI attribution.
