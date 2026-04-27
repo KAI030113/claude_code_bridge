@@ -1,0 +1,5 @@
+.ccb/
+.claude/
+__pycache__/
+*.pyc
+*.pyo

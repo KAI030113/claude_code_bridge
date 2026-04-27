@@ -28,6 +28,8 @@ tmp/
 compare_with_mcp/
 CLAUDE.md
 AGENTS.md
+!config/profiles/**/CLAUDE.md
+!config/profiles/**/AGENTS.md
 GEMINI.md
 openspec
 *.log

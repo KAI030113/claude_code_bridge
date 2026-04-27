@@ -116,6 +116,7 @@ SCRIPTS_TO_LINK=(
   bin/ask
   bin/autonew
   bin/ctx-transfer
+  bin/ccb-profile-apply
   ccb
 )
 

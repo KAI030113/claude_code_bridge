@@ -27,7 +27,7 @@ $script:CCB_END_MARKER = "<!-- CCB_CONFIG_END -->"
 
 $script:SCRIPTS_TO_LINK = @(
   "ccb",
-  "ask", "autonew", "ctx-transfer"
+  "ask", "autonew", "ctx-transfer", "ccb-profile-apply"
 )
 
 $script:CLAUDE_MARKDOWN = @(
