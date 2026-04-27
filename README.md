@@ -87,6 +87,32 @@ This layout means:
 - bottom-right side: a horizontal split between `reviewer` and `qa`
 - `qa` runs in an isolated git worktree; `writer` and `reviewer` run inplace in the main project
 
+## PM -> CCB Workflow Profile
+
+For product-manager/programmer workflows, CCB ships a `pm-dev` profile:
+
+```bash
+cd /path/to/project
+ccb-profile-apply --name pm-dev
+ccb
+```
+
+The profile creates `planner:claude; critic:codex; executor:codex`.
+
+- `planner` owns requirement analysis, planning, delegation, final verification, and the final summary.
+- `critic` performs adversarial plan review and does not edit files.
+- `executor` implements only the approved plan and does not commit or push unless the brief explicitly says so.
+
+Typical usage:
+
+1. Discuss the requirement in the outer PM chat until the goal, scope, acceptance criteria, verification, and git policy are clear.
+2. Send the complete brief to CCB `planner`.
+3. Let `planner` call `critic` and `executor`, then verify the result before reporting back.
+
+`mode=inherit` Claude profiles use the user's global Claude home, so `planner` reuses the normal Claude login and config. Codex managed homes inherit global Codex auth/config and automatically trust the target project when the profile starts, avoiding first-run trust prompts in new projects.
+
+See [docs/workflow-profiles.md](docs/workflow-profiles.md) and [config/profiles/pm-dev/README.md](config/profiles/pm-dev/README.md).
+
 <h2 align="center">🚀 What's New</h2>
 
 Historical note: older release notes below may mention `askd`, legacy flags, or removed commands. Those references are kept only as changelog history and do not redefine the current CLI surface.

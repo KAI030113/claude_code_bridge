@@ -91,6 +91,32 @@ cmd; writer:codex, reviewer:claude; qa:gemini(worktree)
 - 右下区域：`reviewer` 和 `qa` 左右并排
 - `qa` 使用独立 git worktree；`writer` 和 `reviewer` 在主项目目录中以 inplace 方式运行.
 
+## PM -> CCB 工作流 Profile
+
+如果你想把外层聊天当作产品/需求讨论，把实现交给 CCB agents，可以使用 `pm-dev` profile：
+
+```bash
+cd /path/to/project
+ccb-profile-apply --name pm-dev
+ccb
+```
+
+该 profile 会生成 `planner:claude; critic:codex; executor:codex`。
+
+- `planner` 负责需求理解、方案、委派、最终验证和总结。
+- `critic` 只做对抗式方案审查，不改文件。
+- `executor` 只实现通过审查的方案；除非 brief 明确要求，否则不 commit / push。
+
+典型使用方式：
+
+1. 先在外层 PM 聊天里确认目标、范围、验收标准、验证方式和 git 策略。
+2. 把完整 brief 发给 CCB `planner`。
+3. 让 `planner` 调 `critic` 和 `executor`，并在 `executor` 完成后做最终验证。
+
+`mode=inherit` 的 Claude profile 会使用用户全局 Claude home，因此 `planner` 复用正常的 Claude 登录态和配置。Codex managed home 会继承全局 Codex auth/config，并在启动时自动信任当前目标项目，避免新项目首次运行时卡在 trust prompt。
+
+更多细节见 [docs/workflow-profiles.md](docs/workflow-profiles.md) 和 [config/profiles/pm-dev/README.md](config/profiles/pm-dev/README.md)。
+
 
 
 <h2 align="center">🚀 新版本速览</h2>
