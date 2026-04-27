@@ -20,6 +20,9 @@ def resolve_claude_home_layout(runtime_dir: Path, profile) -> ClaudeHomeLayout:
     if explicit_runtime_home is not None:
         return claude_layout_for_home(explicit_runtime_home)
 
+    if _uses_inherited_system_home(profile):
+        return claude_layout_for_home(_system_home_root())
+
     managed_home = _managed_isolated_home(runtime_dir)
     existing = _existing_layout(runtime_dir, managed_home=managed_home)
     if existing is not None:
@@ -30,6 +33,8 @@ def resolve_claude_home_layout(runtime_dir: Path, profile) -> ClaudeHomeLayout:
 
 def prepare_claude_home_overrides(runtime_dir: Path, profile) -> dict[str, str]:
     layout = resolve_claude_home_layout(runtime_dir, profile)
+    if _uses_inherited_system_home(profile):
+        return {}
     materialize_claude_home_config(layout.home_root, profile=profile)
     return {
         'HOME': str(layout.home_root),
@@ -50,6 +55,13 @@ def _profile_runtime_home(profile) -> Path | None:
     if not runtime_home:
         return None
     return Path(runtime_home).expanduser()
+
+
+def _uses_inherited_system_home(profile) -> bool:
+    if profile is None:
+        return False
+    mode = str(getattr(profile, 'mode', '') or '').strip().lower()
+    return mode == 'inherit' and _profile_runtime_home(profile) is None
 
 
 def _existing_layout(runtime_dir: Path, *, managed_home: Path) -> ClaudeHomeLayout | None:

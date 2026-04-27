@@ -300,6 +300,87 @@ def test_poll_submission_reply_delivery_completes_after_dispatch(monkeypatch) ->
     assert sent == [("%1", "CCB_REPLY from=agent2 reply=rep_1")]
 
 
+def test_poll_submission_resends_silent_prompt_once_when_idle(monkeypatch) -> None:
+    submission = ProviderSubmission(
+        job_id="job_prompt",
+        agent_name="agent1",
+        provider="claude",
+        accepted_at="2026-04-06T00:00:00Z",
+        ready_at="2026-04-06T00:00:00Z",
+        source_kind=CompletionSourceKind.SESSION_EVENT_LOG,
+        reply="",
+        runtime_state={
+            "state": {},
+            "mode": "active",
+            "pane_id": "%1",
+            "prompt_text": "CCB_REQ_ID: job_prompt\n\nDo the task",
+            "prompt_sent": True,
+            "prompt_sent_at": "2026-04-06T00:00:00Z",
+            "request_anchor": "job_prompt",
+            "reply_buffer": "",
+            "raw_buffer": "",
+        },
+    )
+    sent: list[tuple[str, str]] = []
+
+    class IdleBackend:
+        def get_pane_content(self, pane_id: str, lines: int = 120) -> str:
+            assert pane_id == "%1"
+            assert lines == 120
+            return "────────────────\n❯\xa0\n────────────────"
+
+        def send_text(self, pane_id: str, text: str) -> None:
+            sent.append((pane_id, text))
+
+    prepared = SimpleNamespace(reader=object(), backend=IdleBackend(), pane_id="%1")
+
+    monkeypatch.setattr(
+        "provider_backends.claude.execution_runtime.polling.prepare_active_poll_without_liveness",
+        lambda submission, now: prepared,
+    )
+    monkeypatch.setattr(
+        "provider_backends.claude.execution_runtime.polling.poll_exact_hook",
+        lambda submission, now: None,
+    )
+    monkeypatch.setattr(
+        "provider_backends.claude.execution_runtime.polling.ensure_active_pane_alive",
+        lambda submission, backend, pane_id, now: None,
+    )
+    monkeypatch.setattr(
+        "provider_backends.claude.execution_runtime.polling.build_poll_state",
+        lambda submission: SimpleNamespace(
+            anchor_seen=True,
+            reached_turn_boundary=False,
+            items=[],
+            next_seq=1,
+            request_anchor="job_prompt",
+            reply_buffer="",
+            raw_buffer="",
+            session_path="",
+            last_assistant_uuid="",
+        ),
+    )
+    monkeypatch.setattr(
+        "provider_backends.claude.execution_runtime.polling.read_events",
+        lambda reader, state: ([], state),
+    )
+    monkeypatch.setattr(
+        "provider_backends.claude.execution_runtime.polling.apply_session_rotation",
+        lambda submission, poll, new_session_path, now: None,
+    )
+    monkeypatch.setattr(
+        "provider_backends.claude.execution_runtime.polling.finalize_poll_result",
+        lambda submission, poll, state: (_ for _ in ()).throw(AssertionError("finalize should not run")),
+    )
+
+    result = poll_submission(None, submission, now="2026-04-06T00:00:07Z")
+
+    assert isinstance(result, ProviderPollResult)
+    assert result.decision is None
+    assert result.submission.runtime_state["prompt_resend_count"] == 1
+    assert sent == [("%1", "CCB_REQ_ID: job_prompt\n\nDo the task")]
+
+
 def test_looks_ready_accepts_nbsp_prompt_line() -> None:
     text = (
         "────────────────────────────────────────────────────\n"

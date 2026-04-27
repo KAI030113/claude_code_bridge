@@ -883,11 +883,20 @@ write_live_source_wrapper() {
   local target="$1"
   local wrapper_path="$2"
   local quoted_target
+  local quoted_python
   printf -v quoted_target '%q' "$target"
-  cat > "$wrapper_path" <<EOF
+  if head -n 1 "$target" 2>/dev/null | grep -Eq 'python3?'; then
+    printf -v quoted_python '%q' "$PYTHON_BIN"
+    cat > "$wrapper_path" <<EOF
+#!/usr/bin/env bash
+exec ${quoted_python} ${quoted_target} "\$@"
+EOF
+  else
+    cat > "$wrapper_path" <<EOF
 #!/usr/bin/env bash
 exec ${quoted_target} "\$@"
 EOF
+  fi
   chmod +x "$wrapper_path" 2>/dev/null || true
 }
 
@@ -965,12 +974,12 @@ install_owned_executable() {
   chmod +x "$source_path" 2>/dev/null || true
   clear_installed_path "$destination_path"
 
-  if ln -s "$source_path" "$destination_path" 2>/dev/null; then
+  if install_uses_live_source; then
+    write_live_source_wrapper "$source_path" "$destination_path"
     return 0
   fi
 
-  if install_uses_live_source; then
-    write_live_source_wrapper "$source_path" "$destination_path"
+  if ln -s "$source_path" "$destination_path" 2>/dev/null; then
     return 0
   fi
 

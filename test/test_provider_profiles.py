@@ -112,6 +112,26 @@ def test_materialize_codex_profile_copies_inherited_assets(tmp_path: Path, monke
     assert (runtime_home / 'sessions').is_dir()
 
 
+def test_materialize_codex_home_config_trusts_target_project(tmp_path: Path) -> None:
+    source_home = tmp_path / 'system-codex-home'
+    target_home = tmp_path / 'managed-codex-home'
+    project_root = tmp_path / 'repo'
+    source_home.mkdir(parents=True, exist_ok=True)
+    project_root.mkdir(parents=True, exist_ok=True)
+    (source_home / 'config.toml').write_text('model = "gpt-5.5"\n', encoding='utf-8')
+
+    config_path = codex_home_config.materialize_codex_home_config(
+        target_home,
+        source_home=source_home,
+        trusted_project=project_root,
+    )
+
+    config_text = config_path.read_text(encoding='utf-8')
+    assert 'model = "gpt-5.5"' in config_text
+    assert f'[projects."{project_root.resolve()}"]' in config_text
+    assert 'trust_level = "trusted"' in config_text
+
+
 def test_materialize_codex_profile_writes_agent_local_provider_config_for_explicit_api(
     tmp_path: Path,
     monkeypatch,

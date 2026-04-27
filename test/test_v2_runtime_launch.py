@@ -9,6 +9,7 @@ import pytest
 from agents.models import (
     AgentSpec,
     PermissionMode,
+    ProviderProfileSpec,
     QueuePolicy,
     RestoreMode,
     RuntimeMode,
@@ -32,7 +33,7 @@ from terminal_runtime.tmux_identity import pane_visual
 from workspace.planner import WorkspacePlanner
 
 
-def _spec(name: str, provider: str = 'codex') -> AgentSpec:
+def _spec(name: str, provider: str = 'codex', *, provider_profile: ProviderProfileSpec | None = None) -> AgentSpec:
     return AgentSpec(
         name=name,
         provider=provider,
@@ -43,6 +44,7 @@ def _spec(name: str, provider: str = 'codex') -> AgentSpec:
         restore_default=RestoreMode.AUTO,
         permission_default=PermissionMode.MANUAL,
         queue_policy=QueuePolicy.SERIAL_PER_AGENT,
+        provider_profile=provider_profile or ProviderProfileSpec(),
     )
 
 
@@ -120,7 +122,7 @@ def test_ensure_agent_runtime_configures_claude_managed_home_without_touching_wo
     (project_root / '.ccb').mkdir(parents=True)
 
     ctx = _context(project_root, ParsedStartCommand(project=None, agent_names=('agent3',), restore=False, auto_permission=False))
-    spec = _spec('agent3', provider='claude')
+    spec = _spec('agent3', provider='claude', provider_profile=ProviderProfileSpec(mode='isolated'))
     plan = WorkspacePlanner().plan(spec, ctx.project)
     workspace_settings = plan.workspace_path / '.claude' / 'settings.json'
     workspace_settings.parent.mkdir(parents=True, exist_ok=True)
@@ -139,12 +141,12 @@ def test_ensure_agent_runtime_configures_claude_managed_home_without_touching_wo
     )
 
     observed: dict[str, object] = {}
-    managed_settings = ctx.paths.agent_provider_state_dir('agent3', 'claude') / 'home' / '.claude' / 'settings.json'
+    profile_settings = project_root / '.ccb' / 'provider-profiles' / 'agent3' / 'claude' / '.claude' / 'settings.json'
 
     def fake_ensure_impl(*args, **kwargs):
         del args, kwargs
         observed['workspace_settings_exists'] = workspace_settings.exists()
-        observed['managed_settings_exists'] = managed_settings.exists()
+        observed['profile_settings_exists'] = profile_settings.exists()
         return runtime_launch.RuntimeLaunchResult(launched=False, binding=None)
 
     monkeypatch.setattr(runtime_launch, '_ensure_agent_runtime_impl', fake_ensure_impl)
@@ -153,9 +155,9 @@ def test_ensure_agent_runtime_configures_claude_managed_home_without_touching_wo
 
     assert result == runtime_launch.RuntimeLaunchResult(launched=False, binding=None)
     assert observed['workspace_settings_exists'] is True
-    assert observed['managed_settings_exists'] is True
-    managed_payload = json.loads(managed_settings.read_text(encoding='utf-8'))
-    assert managed_payload['hooks']['Stop'][0]['hooks'][0]['command']
+    assert observed['profile_settings_exists'] is True
+    profile_payload = json.loads(profile_settings.read_text(encoding='utf-8'))
+    assert profile_payload['hooks']['Stop'][0]['hooks'][0]['command']
 
 
 def test_ensure_agent_runtime_launches_named_codex_session(monkeypatch, tmp_path: Path) -> None:
@@ -679,7 +681,7 @@ def test_ensure_agent_runtime_launches_named_claude_session(monkeypatch, tmp_pat
     project_root = tmp_path / 'repo-claude'
     (project_root / '.ccb').mkdir(parents=True)
     ctx = _context(project_root, ParsedStartCommand(project=None, agent_names=('reviewer',), restore=True, auto_permission=True))
-    spec = _spec('reviewer', provider='claude')
+    spec = _spec('reviewer', provider='claude', provider_profile=ProviderProfileSpec(mode='isolated'))
     plan = WorkspacePlanner().plan(spec, ctx.project)
     plan.workspace_path.mkdir(parents=True, exist_ok=True)
 
@@ -725,7 +727,7 @@ def test_ensure_agent_runtime_launches_named_claude_session(monkeypatch, tmp_pat
     expected_session = project_root / '.ccb' / '.claude-reviewer-session'
     assert result.binding.session_ref == str(expected_session)
     payload = json.loads(expected_session.read_text(encoding='utf-8'))
-    expected_claude_home = ctx.paths.agent_provider_state_dir('reviewer', 'claude') / 'home'
+    expected_claude_home = project_root / '.ccb' / 'provider-profiles' / 'reviewer' / 'claude'
     assert payload['agent_name'] == 'reviewer'
     assert payload['ccb_project_id'] == ctx.project.project_id
     assert payload['completion_artifact_dir'] == str(ctx.paths.agent_dir('reviewer') / 'provider-runtime' / 'claude' / 'completion')
@@ -2052,6 +2054,53 @@ def test_claude_launcher_build_start_cmd_uses_agent_settings_overlay_when_presen
         f'claude --setting-sources user,project,local --settings {shlex.quote(str(settings_path))}'
     )
     assert json.loads(settings_path.read_text(encoding='utf-8')) == {'model': 'opus'}
+
+
+def test_claude_launcher_build_start_cmd_uses_system_home_for_explicit_inherit_profile(
+    monkeypatch, tmp_path: Path
+) -> None:
+    project_root = tmp_path / 'repo-claude-inherit'
+    runtime_dir = project_root / '.ccb' / 'agents' / 'reviewer' / 'provider-runtime' / 'claude'
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+    profile_root = project_root / '.ccb' / 'provider-profiles' / 'reviewer' / 'claude'
+    _write_provider_profile(
+        runtime_dir,
+        ResolvedProviderProfile(
+            provider='claude',
+            agent_name='reviewer',
+            mode='inherit',
+            profile_root=str(profile_root),
+            runtime_home=None,
+            env={},
+            inherit_api=True,
+            inherit_auth=True,
+            inherit_config=True,
+        ),
+    )
+    spec = _spec('reviewer', provider='claude')
+    command = ParsedStartCommand(project=None, agent_names=('reviewer',), restore=False, auto_permission=False)
+    system_home = tmp_path / 'system-home'
+
+    monkeypatch.setattr('provider_backends.claude.launcher.Path.home', lambda: system_home)
+    monkeypatch.setattr('provider_backends.claude.launcher_runtime.home.Path.home', lambda: system_home)
+    monkeypatch.setattr(
+        claude_launcher,
+        '_resolve_claude_restore_target',
+        lambda **kwargs: ProviderRestoreTarget(run_cwd=runtime_dir, has_history=False),
+    )
+
+    start_cmd = claude_launcher.build_start_cmd(command, spec, runtime_dir, 'claude-sess-inherit')
+
+    _assert_caller_env_exports(
+        start_cmd,
+        actor='reviewer',
+        runtime_dir=runtime_dir,
+        session_id='claude-sess-inherit',
+    )
+    assert 'HOME=' not in start_cmd
+    assert 'CLAUDE_PROJECTS_ROOT=' not in start_cmd
+    assert 'CLAUDE_PROJECT_ROOT=' not in start_cmd
+    assert not (project_root / '.ccb' / 'agents' / 'reviewer' / 'provider-state' / 'claude' / 'home').exists()
 
 
 def test_claude_launcher_build_start_cmd_uses_materialized_profile_home(monkeypatch, tmp_path: Path) -> None:

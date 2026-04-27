@@ -35,6 +35,7 @@ def materialize_codex_home_config(
     *,
     profile=None,
     source_home: Path | None = None,
+    trusted_project: Path | None = None,
 ) -> Path:
     target_home = Path(target_home).expanduser()
     source_home = Path(source_home).expanduser() if source_home is not None else _system_codex_home()
@@ -54,6 +55,9 @@ def materialize_codex_home_config(
             _write_managed_config_stub(target_config)
     else:
         _write_managed_config_stub(target_config)
+
+    if trusted_project is not None:
+        _ensure_project_trust(target_config, trusted_project)
 
     _materialize_auth_file(
         source_home / 'auth.json',
@@ -137,6 +141,31 @@ def _write_codex_api_authority_config(target: Path, authority: CodexApiAuthority
 def _write_managed_config_stub(target: Path) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text('# ccb agent-local codex config\n', encoding='utf-8')
+
+
+def _ensure_project_trust(target: Path, project_root: Path) -> None:
+    project_key = _trusted_project_key(project_root)
+    if not project_key:
+        return
+    payload = _read_source_config_payload(target)
+    projects = payload.get('projects')
+    if not isinstance(projects, dict):
+        projects = {}
+    project_entry = projects.get(project_key)
+    if not isinstance(project_entry, dict):
+        project_entry = {}
+    if project_entry.get('trust_level') == 'trusted':
+        return
+    projects[project_key] = {**project_entry, 'trust_level': 'trusted'}
+    payload['projects'] = projects
+    target.write_text(_render_toml_document(payload), encoding='utf-8')
+
+
+def _trusted_project_key(project_root: Path) -> str:
+    try:
+        return str(Path(project_root).expanduser().resolve())
+    except Exception:
+        return str(Path(project_root).expanduser())
 
 
 def _managed_codex_config_payload(source_config: Path, *, authority: CodexApiAuthority) -> dict[str, object]:

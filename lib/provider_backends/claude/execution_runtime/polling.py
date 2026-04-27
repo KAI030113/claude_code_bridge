@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+import os
 
 from completion.models import CompletionItemKind
 from completion.models import CompletionConfidence, CompletionDecision, CompletionStatus
@@ -57,6 +58,9 @@ def poll_submission(
     state = _poll_event_batches(submission, prepared.reader, poll, state=state, now=now)
     if isinstance(state, ProviderPollResult):
         return _merge_poll_result_items(state, prefix_items=dispatch_items)
+    prompt_resend = _resend_silent_prompt_if_idle(submission, prepared=prepared, state=state, now=now)
+    if prompt_resend is not None:
+        return _merge_poll_result_items(ProviderPollResult(submission=prompt_resend), prefix_items=dispatch_items)
     return _merge_poll_result_items(
         finalize_poll_result(submission, poll, state=state),
         prefix_items=dispatch_items,
@@ -199,6 +203,67 @@ def _reply_delivery_terminal_if_dispatched(
         },
     )
     return ProviderPollResult(submission=submission, decision=decision)
+
+
+def _resend_silent_prompt_if_idle(
+    submission: ProviderSubmission,
+    *,
+    prepared,
+    state: dict,
+    now: str,
+) -> ProviderSubmission | None:
+    runtime_state = dict(submission.runtime_state or {})
+    if not bool(runtime_state.get("prompt_sent", False)):
+        return None
+    if int(runtime_state.get("prompt_resend_count") or 0) >= 1:
+        return None
+    if str(runtime_state.get("reply_buffer") or runtime_state.get("raw_buffer") or "").strip():
+        return None
+    if state_session_path(state):
+        return None
+    prompt = str(runtime_state.get("prompt_text") or "")
+    if not prompt.strip():
+        return None
+    sent_at = str(runtime_state.get("prompt_sent_at") or "").strip()
+    if not _elapsed_at_least(sent_at, now, _silent_prompt_resend_delay_s()):
+        return None
+    get_pane_content = getattr(prepared.backend, "get_pane_content", None)
+    if not callable(get_pane_content):
+        return None
+    try:
+        text = str(get_pane_content(prepared.pane_id, lines=120) or "")
+    except Exception:
+        return None
+    if not looks_ready(text):
+        return None
+
+    send_prompt(prepared.backend, prepared.pane_id, prompt)
+    return replace(
+        submission,
+        runtime_state={
+            **runtime_state,
+            "state": state,
+            "prompt_resend_count": 1,
+            "prompt_resent_at": now,
+        },
+    )
+
+
+def _silent_prompt_resend_delay_s(default: float = 6.0) -> float:
+    try:
+        return max(0.0, float(os.environ.get("CCB_CLAUDE_SILENT_PROMPT_RESEND_DELAY_S", default)))
+    except Exception:
+        return max(0.0, default)
+
+
+def _elapsed_at_least(started_at: str, now: str, delay_s: float) -> bool:
+    if not started_at:
+        return False
+    try:
+        elapsed = (parse_utc_timestamp(now) - parse_utc_timestamp(started_at)).total_seconds()
+    except Exception:
+        return False
+    return elapsed >= max(0.0, delay_s)
 
 
 def _ready_wait_timed_out(submission: ProviderSubmission, *, now: str) -> bool:

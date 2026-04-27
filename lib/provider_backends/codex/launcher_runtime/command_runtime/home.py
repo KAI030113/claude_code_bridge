@@ -55,7 +55,12 @@ def prepare_codex_home_overrides(runtime_dir: Path, profile) -> dict[str, str]:
     layout = resolve_codex_home_layout(runtime_dir, profile)
     layout.codex_home.mkdir(parents=True, exist_ok=True)
     layout.session_root.mkdir(parents=True, exist_ok=True)
-    _prepare_managed_home(_system_codex_home(), layout.codex_home, profile=profile)
+    _prepare_managed_home(
+        _system_codex_home(),
+        layout.codex_home,
+        profile=profile,
+        trusted_project=_project_root_for_runtime_dir(runtime_dir),
+    )
     _ensure_session_namespace_authority(runtime_dir, layout.codex_home, layout.session_root, profile=profile)
 
     return {
@@ -173,6 +178,16 @@ def _managed_state_dir(runtime_dir: Path) -> Path:
 
 def _managed_isolated_home(runtime_dir: Path) -> Path:
     return _managed_state_dir(runtime_dir) / 'home'
+
+
+def _project_root_for_runtime_dir(runtime_dir: Path) -> Path | None:
+    path = Path(runtime_dir).expanduser()
+    for parent in (path, *path.parents):
+        if parent.name == '.ccb':
+            return parent.parent
+    return None
+
+
 def _legacy_root_to_home(session_root: Path) -> Path:
     normalized_root = Path(session_root).expanduser()
     if normalized_root.name == 'sessions':
@@ -205,8 +220,8 @@ def _system_codex_home() -> Path:
     return Path(os.environ.get('CODEX_HOME') or (Path.home() / '.codex')).expanduser()
 
 
-def _prepare_managed_home(source_home: Path, target_home: Path, *, profile) -> None:
-    materialize_codex_home_config(target_home, profile=profile, source_home=source_home)
+def _prepare_managed_home(source_home: Path, target_home: Path, *, profile, trusted_project: Path | None = None) -> None:
+    materialize_codex_home_config(target_home, profile=profile, source_home=source_home, trusted_project=trusted_project)
 
 
 def _ensure_session_namespace_authority(runtime_dir: Path, codex_home: Path, session_root: Path, *, profile) -> None:
