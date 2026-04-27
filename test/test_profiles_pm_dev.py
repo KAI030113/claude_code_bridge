@@ -29,14 +29,10 @@ def test_pm_dev_bundle_exists():
     assert {p.name for p in PROFILE_DIR.iterdir()} >= expected
 
 
-def test_pm_dev_ccb_config_loads_via_public_loader(tmp_path):
-    """ccb.config from the profile parses via the public config loader."""
-    ccb_dir = tmp_path / ".ccb"
-    ccb_dir.mkdir()
-    (ccb_dir / "ccb.config").write_text(
-        (PROFILE_DIR / "ccb.config").read_text(encoding="utf-8"),
-        encoding="utf-8",
-    )
+def test_applier_output_loads_via_public_loader(tmp_path):
+    """The applier's actual output (not a hand-crafted layout) must satisfy load_project_config."""
+    proc = _run_applier(["--name", "pm-dev", "--target", str(tmp_path)], cwd=tmp_path)
+    assert proc.returncode == 0, proc.stderr
     sys.path.insert(0, str(REPO_ROOT / "lib"))
     try:
         from agents.config_loader_runtime import load_project_config  # noqa: WPS433
@@ -44,7 +40,8 @@ def test_pm_dev_ccb_config_loads_via_public_loader(tmp_path):
         sys.path.pop(0)
     result = load_project_config(tmp_path)
     assert result is not None
-    # We don't assert deep schema; the call not raising is the contract.
+    text = (tmp_path / ".ccb" / "ccb.config").read_text(encoding="utf-8")
+    assert "planner" in text and "critic" in text and "executor" in text
 
 
 def test_pm_dev_profile_files_have_no_local_paths_or_secrets():
@@ -78,25 +75,34 @@ def test_applier_dry_run_writes_nothing(tmp_path):
 def test_applier_first_apply_writes_expected_files(tmp_path):
     proc = _run_applier(["--name", "pm-dev", "--target", str(tmp_path)], cwd=tmp_path)
     assert proc.returncode == 0, proc.stderr
-    written = {p.name for p in tmp_path.iterdir()}
-    assert {"ccb.config", "CLAUDE.md", "AGENTS.md", ".gitignore"} <= written
-    # README.md is never copied
+    written = {p.name for p in tmp_path.iterdir() if p.is_file()}
+    assert {"CLAUDE.md", "AGENTS.md", ".gitignore"} <= written
+    # ccb.config goes under .ccb/, not root
+    assert (tmp_path / ".ccb" / "ccb.config").is_file()
+    assert not (tmp_path / "ccb.config").exists()
+    # README.md and gitignore.fragment are never copied
     assert "README.md" not in written
     assert "gitignore.fragment" not in written
     gi = (tmp_path / ".gitignore").read_text(encoding="utf-8")
     assert "# >>> ccb-profile pm-dev" in gi
-    assert ".ccb/" in gi
+    assert ".ccb/*" in gi
+    assert "!.ccb/ccb.config" in gi
 
 
 def test_applier_second_apply_is_idempotent(tmp_path):
     _run_applier(["--name", "pm-dev", "--target", str(tmp_path)], cwd=tmp_path)
     first_gi = (tmp_path / ".gitignore").read_text(encoding="utf-8")
+    first_cfg = (tmp_path / ".ccb" / "ccb.config").read_text(encoding="utf-8")
     proc2 = _run_applier(["--name", "pm-dev", "--target", str(tmp_path)], cwd=tmp_path)
     assert proc2.returncode == 0, proc2.stderr
     assert "skipped (exists" in proc2.stdout
     assert "skipped (gitignore block already present)" in proc2.stdout
+    # ccb.config explicitly skipped
+    assert "ccb.config" in proc2.stdout
     second_gi = (tmp_path / ".gitignore").read_text(encoding="utf-8")
+    second_cfg = (tmp_path / ".ccb" / "ccb.config").read_text(encoding="utf-8")
     assert first_gi == second_gi
+    assert first_cfg == second_cfg
 
 
 def test_applier_force_overwrites(tmp_path):

@@ -58,7 +58,10 @@ def apply_profile(*, name: str, profile_dir: Path, target: Path, force: bool, dr
         if src.name == "gitignore.fragment":
             print(merge_gitignore(src, target / ".gitignore", name=name, dry_run=dry_run))
             continue
-        dst = target / src.name
+        if src.name == "ccb.config":
+            dst = target / ".ccb" / "ccb.config"
+        else:
+            dst = target / src.name
         if dst.exists() and not force:
             print(f"skipped (exists, --force to overwrite): {dst}")
             continue
@@ -66,6 +69,7 @@ def apply_profile(*, name: str, profile_dir: Path, target: Path, force: bool, dr
             print(f"would write: {dst}")
             continue
         try:
+            dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(src, dst)
             print(f"wrote: {dst}")
         except OSError as exc:

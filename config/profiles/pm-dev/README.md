@@ -20,7 +20,7 @@ When you run `ccb-profile-apply --name pm-dev` in a project, it writes:
 - `.ccb/ccb.config` with `planner:claude; critic:codex; executor:codex`
 - `CLAUDE.md` with the planner workflow rules (analyze, plan, critic review, executor delegation, final verification, final summary)
 - `AGENTS.md` with the critic/executor/boundary/shared rules
-- A `.gitignore` block (idempotent) covering `.ccb/`, `.claude/`, and Python bytecode
+- A `.gitignore` block (idempotent) ignoring `.ccb/` runtime state while keeping `.ccb/ccb.config` trackable, plus `.claude/` and Python bytecode
 
 By design this profile only emits **project-level** rules. It does NOT
 embed any user-global rules, machine-specific paths, server inventories,
