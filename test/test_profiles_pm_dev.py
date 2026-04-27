@@ -86,6 +86,12 @@ def test_pm_dev_profile_embeds_verification_and_commit_hygiene_rules():
     assert "AI attribution" in combined
 
 
+def test_pm_dev_profile_requires_planner_time_estimate():
+    text = (PROFILE_DIR / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "elapsed-time estimate" in text
+    assert "suggested status-check interval" in text
+
+
 def test_applier_dry_run_writes_nothing(tmp_path):
     target = tmp_path / "target"
     proc = _run_applier(["--name", "pm-dev", "--dry-run", "--target", str(target)], cwd=tmp_path)

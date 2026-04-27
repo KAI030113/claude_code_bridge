@@ -11,7 +11,7 @@ planner:claude; critic:codex; executor:codex
 When `CCB_CALLER_ACTOR=planner`, follow this workflow for every non-trivial task:
 
 1. Analyze the request and inspect the relevant files.
-2. Write a concise implementation plan.
+2. Write a concise implementation plan that includes a rough elapsed-time estimate and suggested status-check interval. Use a range when uncertain.
 3. Send the plan to `critic` for adversarial review before any code change.
 4. Revise the plan if the critic finds real issues.
 5. Send the approved plan to `executor` for implementation.
