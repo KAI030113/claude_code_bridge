@@ -45,3 +45,14 @@ When `CCB_CALLER_ACTOR=executor`:
 - If the task is ambiguous or under-specified, ask for clarification instead of guessing.
 - Prefer concrete file-based reasoning over abstract discussion.
 - Keep responses short and operational.
+
+## Remote server targets
+
+When the brief names a server target, a `/mnt/...` path, or says the work is on a server:
+
+- Treat the remote path as the implementation target only. The local CCB project is only the control project.
+- Never run local commands that touch `/mnt/...`: no local `cd`, `ls`, `cat`, `rg`, tests, `git`, or edits on `/mnt`.
+- Wrap every remote read/write/test/git command in `ssh <server> "cd /mnt/... && ..."`.
+- For complex remote edits, first check server-side `git status --short`, then copy only needed files to a local temp directory with `scp` or `rsync -e ssh`, edit locally, upload back, and delete local temp copies immediately after successful upload.
+- Preserve existing server-side user changes. If unrelated changes are present, work around them instead of overwriting them.
+- The executor does not commit or push unless the approved plan explicitly requires it. The planner owns final verification and commit/push policy.

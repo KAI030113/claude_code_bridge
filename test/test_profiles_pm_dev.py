@@ -52,7 +52,7 @@ def test_pm_dev_profile_files_have_no_local_paths_or_secrets():
         "train1_8",
         "http_proxy",
         "ANTHROPIC_BASE_URL",
-        "/mnt/",
+        "/mnt/world_foundational_model",
         "sheyangsuzhiyuan",
     ]
     for path in PROFILE_DIR.iterdir():
@@ -61,6 +61,17 @@ def test_pm_dev_profile_files_have_no_local_paths_or_secrets():
         text = path.read_text(encoding="utf-8")
         for needle in forbidden:
             assert needle not in text, f"{needle!r} leaked into {path.name}"
+
+
+def test_pm_dev_profile_embeds_remote_server_safety_rules():
+    combined = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (PROFILE_DIR / "AGENTS.md", PROFILE_DIR / "CLAUDE.md")
+    )
+    assert "Remote server targets" in combined
+    assert "Never run local commands that touch `/mnt/...`" in combined
+    assert 'ssh <server> "cd /mnt/... && ..."' in combined
+    assert "delete local temp copies immediately after successful upload" in combined
 
 
 def test_applier_dry_run_writes_nothing(tmp_path):

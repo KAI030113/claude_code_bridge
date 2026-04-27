@@ -34,3 +34,14 @@ Before concluding a task, the planner must:
 - if a target file is untracked, read its full content directly and confirm it matches the approved plan,
 - run the smallest relevant test or command,
 - state whether the executor output matches the approved plan.
+
+## Remote server targets
+
+When the brief names a server target, a `/mnt/...` path, or says the work is on a server:
+
+- Keep CCB running from the local control project. The remote path is the implementation target, not a local directory.
+- Never run local commands that touch `/mnt/...`: no local `cd`, `ls`, `cat`, `rg`, tests, `git`, or edits on `/mnt`.
+- Wrap every remote read/write/test/git command in `ssh <server> "cd /mnt/... && ..."`.
+- Before remote edits, check server-side `git status --short` and preserve existing user changes.
+- For complex remote edits, prefer: `scp` or `rsync -e ssh` only the needed files to a local temp directory, edit locally, upload back, delete local temp copies immediately after successful upload, then verify on the server through SSH.
+- The planner owns final remote verification, `git diff`, `git status --short`, commit, and push policy. The executor should not commit or push unless the approved plan explicitly says so.
