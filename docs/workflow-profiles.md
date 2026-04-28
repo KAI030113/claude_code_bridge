@@ -45,6 +45,25 @@ symlinks it into `~/.local/bin`), call it through the install prefix:
 If you used a custom install prefix, replace
 `~/.local/share/codex-dual` with `$CODEX_INSTALL_PREFIX`.
 
+## Switching profiles
+
+If a project already has a running CCB namespace or was previously started
+with another profile, overwrite the profile files and rebuild the runtime
+layout before sending `ccb ask` jobs:
+
+```bash
+cd /path/to/your/project
+ccb-profile-apply --name brainstorm --force
+ccb config validate
+ccb kill -f
+ccb -n
+ccb ps
+```
+
+`ccb ps` should show the selected profile's agent names with live bindings
+before dispatch. If it shows stale agents, `partial`, `failed`, or only a
+`cmd` pane, restart/rebuild the runtime first; do not submit the job yet.
+
 ## Options
 
 | Flag | Effect |
