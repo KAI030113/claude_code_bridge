@@ -17,6 +17,7 @@ Profiles ship with the CCB install at
 | Name | Layout | Notes |
 |---|---|---|
 | `pm-dev` | `planner:claude; critic:codex; executor:codex` | Strict plan → review → implement → verify loop. |
+| `brainstorm` | `claude:claude; codex:codex` | Idea validation and feasibility debate before implementation. |
 
 (Add new profiles by dropping a directory under `config/profiles/<name>/`.)
 
@@ -25,6 +26,13 @@ Profiles ship with the CCB install at
 ```bash
 cd /path/to/your/project
 ccb-profile-apply --name pm-dev
+```
+
+Use `brainstorm` when the goal is to compare approaches or test feasibility
+before implementation:
+
+```bash
+ccb-profile-apply --name brainstorm
 ```
 
 If `ccb-profile-apply` is not on PATH (the CCB installer normally

@@ -113,6 +113,14 @@ Typical usage:
 
 See [docs/workflow-profiles.md](docs/workflow-profiles.md) and [config/profiles/pm-dev/README.md](config/profiles/pm-dev/README.md).
 
+For pre-implementation idea validation, use the `brainstorm` profile:
+
+```bash
+ccb-profile-apply --name brainstorm
+```
+
+It creates `claude:claude; codex:codex` so Claude and Codex can challenge each other's assumptions and converge on a recommendation without editing files.
+
 <h2 align="center">🚀 What's New</h2>
 
 Historical note: older release notes below may mention `askd`, legacy flags, or removed commands. Those references are kept only as changelog history and do not redefine the current CLI surface.

@@ -1,0 +1,6 @@
+.ccb/*
+!.ccb/ccb.config
+.claude/
+__pycache__/
+*.pyc
+*.pyo

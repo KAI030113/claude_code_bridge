@@ -117,6 +117,14 @@ ccb
 
 更多细节见 [docs/workflow-profiles.md](docs/workflow-profiles.md) 和 [config/profiles/pm-dev/README.md](config/profiles/pm-dev/README.md)。
 
+如果还没进入实现、只是想让 Claude 和 Codex 互相验证想法和可行性，可以使用 `brainstorm` profile：
+
+```bash
+ccb-profile-apply --name brainstorm
+```
+
+它会生成 `claude:claude; codex:codex`，用于互相挑战假设、讨论替代方案并收敛推荐结论，不默认改文件。
+
 
 
 <h2 align="center">🚀 新版本速览</h2>
