@@ -16,8 +16,8 @@ Profiles ship with the CCB install at
 
 | Name | Layout | Notes |
 |---|---|---|
-| `pm-dev` | `planner:claude; critic:codex; executor:codex` | Strict plan → review → implement → verify loop. |
-| `brainstorm` | `claude:claude; codex:codex` | Idea validation and feasibility debate before implementation. |
+| `pm-dev` | `planner:claude; critic:codex; executor:codex` | Strict plan -> synchronous review -> synchronous implement -> verify loop. |
+| `brainstorm` | `claude:claude; codex:codex` | Idea validation and feasibility debate before implementation, with synchronous Codex critique before synthesis. |
 
 (Add new profiles by dropping a directory under `config/profiles/<name>/`.)
 

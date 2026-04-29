@@ -27,6 +27,10 @@ embed any user-global rules, machine-specific paths, server inventories,
 proxy URLs, or API base URLs. Carry those in your outer task brief or
 your global agent settings, not in the profile.
 
+Planner handoffs to `critic` and `executor` are synchronous
+(`ccb ask --wait --timeout 300 ...`) so the planner can continue only after
+the child agent result is actually available.
+
 ## Boundary
 
 - `pm-dev` is one workflow shape. Other CCB users may prefer the

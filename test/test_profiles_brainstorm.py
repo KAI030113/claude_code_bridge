@@ -68,6 +68,13 @@ def test_brainstorm_profile_requires_time_estimate_when_needed():
     assert "debate-time estimate" in text
 
 
+def test_brainstorm_profile_requires_synchronous_codex_critique():
+    text = (PROFILE_DIR / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "ccb ask --wait --timeout 300 codex" in text
+    assert "processing/submitted notice" in text
+    assert "actual Codex reply" in text
+
+
 def test_applier_list_mentions_brainstorm():
     proc = _run_applier(["--list"], cwd=REPO_ROOT)
     assert proc.returncode == 0, proc.stderr

@@ -92,6 +92,13 @@ def test_pm_dev_profile_requires_planner_time_estimate():
     assert "suggested status-check interval" in text
 
 
+def test_pm_dev_profile_requires_synchronous_child_handoffs():
+    text = (PROFILE_DIR / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "ccb ask --wait --timeout 300 critic" in text
+    assert "ccb ask --wait --timeout 300 executor" in text
+    assert "processing/submitted notice" in text
+
+
 def test_applier_dry_run_writes_nothing(tmp_path):
     target = tmp_path / "target"
     proc = _run_applier(["--name", "pm-dev", "--dry-run", "--target", str(target)], cwd=tmp_path)

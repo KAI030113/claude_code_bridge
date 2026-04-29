@@ -20,6 +20,8 @@ This profile is intentionally non-implementation-oriented. Agents may inspect fi
 
 For server targets, agents may use SSH to inspect evidence, but they must not treat `/mnt/...` as a local path or edit remote files in brainstorm mode. Claude should include a rough debate-time estimate when the discussion is expected to take more than a few minutes.
 
+Claude uses synchronous CCB delegation (`ccb ask --wait --timeout 300 codex ...`) for the main Codex critique. The final synthesis should be based on the received Codex reply, not just on a submitted/processing notice.
+
 ## Switching from another profile
 
 After switching an existing project to `brainstorm`, rebuild the runtime

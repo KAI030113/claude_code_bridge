@@ -20,7 +20,8 @@ When `CCB_CALLER_ACTOR=planner`, follow this workflow for every non-trivial task
 
 ## Delegation policy
 
-- Use `ccb ask critic ...` / `ccb ask executor ...`.
+- Use synchronous CCB delegation for required handoffs: `ccb ask --wait --timeout 300 critic ...` and `ccb ask --wait --timeout 300 executor ...`.
+- Do not use fire-and-return delegation for the required critic or executor steps. If a call returns only a processing/submitted notice, wait for the child job result before continuing.
 - If `ccb` is not on PATH, ensure the CCB install's `bin/` directory is on PATH (typically `~/.local/bin`). Do NOT modify shell PATH from inside the workflow.
 - Do not write the implementation directly when `executor` can perform it.
 - Do not skip the critic step for non-trivial changes.

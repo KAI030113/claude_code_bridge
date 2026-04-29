@@ -21,6 +21,12 @@ When `CCB_CALLER_ACTOR=claude`:
 5. If important disagreement remains, run one more focused exchange instead of forcing agreement.
 6. End with a clear synthesis: recommended option, rejected options and why, open questions, and what would be needed before implementation.
 
+## Delegation policy
+
+- Use synchronous CCB delegation for Codex critique: `ccb ask --wait --timeout 300 codex ...`.
+- Do not use a fire-and-return `/ask codex` call for the main critique. If a call returns only a processing/submitted notice, wait for the Codex job result before producing the final synthesis.
+- The final synthesis must be based on the actual Codex reply, not on the fact that a Codex request was submitted.
+
 ## Boundaries
 
 - Do not edit files, run migrations, start services, commit, or push unless the user explicitly converts the brainstorm into an implementation task.
