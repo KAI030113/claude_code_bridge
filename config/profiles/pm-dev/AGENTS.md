@@ -55,6 +55,7 @@ When the brief names a server target, a `/mnt/...` path, or says the work is on 
 - Treat the remote path as the implementation target only. The local CCB project is only the control project.
 - Never run local commands that touch `/mnt/...`: no local `cd`, `ls`, `cat`, `rg`, tests, `git`, or edits on `/mnt`.
 - Wrap every remote read/write/test/git command in `ssh <server> "cd /mnt/... && ..."`.
+- Before starting any remote server task that may consume compute resources (training, eval, background jobs, GPU jobs, long-running scripts), inspect active tasks and GPU utilization on that server, for example with `nvidia-smi` plus relevant process checks. If any real task is running or GPUs are actively being used, stop and ask the user for confirmation before starting new work. If nothing substantive is running, or the only running GPU process is a single `occupy`/`occupy_gpu` placeholder script, proceed directly.
 - For complex remote edits, first check server-side `git status --short`, then copy only needed files to a local temp directory with `scp` or `rsync -e ssh`, edit locally, upload back, and delete local temp copies immediately after successful upload.
 - Preserve existing server-side user changes. If unrelated changes are present, work around them instead of overwriting them.
 - The executor does not commit or push unless the approved plan explicitly requires it. The planner owns final verification and commit/push policy.

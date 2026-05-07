@@ -31,6 +31,12 @@ Planner handoffs to `critic` and `executor` are synchronous
 (`ccb ask --wait --timeout 300 ...`) so the planner can continue only after
 the child agent result is actually available.
 
+For remote server execution, the planner/executor rules require a resource
+preflight before starting compute-heavy work: check active tasks and GPU
+utilization first, ask the user if real jobs are already running, and proceed
+directly only when nothing substantive is running or the only GPU process is a
+single `occupy`/`occupy_gpu` placeholder script.
+
 ## Boundary
 
 - `pm-dev` is one workflow shape. Other CCB users may prefer the

@@ -71,6 +71,8 @@ def test_pm_dev_profile_embeds_remote_server_safety_rules():
     assert "Remote server targets" in combined
     assert "Never run local commands that touch `/mnt/...`" in combined
     assert 'ssh <server> "cd /mnt/... && ..."' in combined
+    assert "GPU utilization" in combined
+    assert "occupy_gpu" in combined
     assert "delete local temp copies immediately after successful upload" in combined
 
 
